@@ -10,7 +10,6 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "Chi tiêu — Dashboard",
-  description: "Theo dõi chi tiêu ngày và tháng, biểu đồ realtime, lưu Supabase.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
