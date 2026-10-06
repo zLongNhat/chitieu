@@ -551,51 +551,63 @@ export default function Dashboard() {
                 </div>
 
                 <div className="m3-card min-w-0 p-4 sm:p-5">
-                  <h2 className="font-extrabold">{tab === "day" ? "Theo mục hôm nay" : "Theo mục tháng này"}</h2>
-                  {pieCat.length === 0 ? (
-                    <p className="py-10 text-center text-sm opacity-60">
-                      Chưa có chi tiêu.{" "}
-                      <Link href="/add" className="font-bold underline">
-                        Thêm ngay
-                      </Link>
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-extrabold">{tab === "day" ? "Lịch sử hôm nay" : "Lịch sử tháng này"}</h2>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={refetch}
+                        aria-label="Tải lại"
+                        className="grid size-7 place-items-center rounded-full opacity-60 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
+                      >
+                        <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
+                      </button>
+                      <span
+                        className="rounded-full px-2.5 py-1 text-xs font-extrabold"
+                        style={{ background: "var(--m3-secondary-container)" }}
+                      >
+                        {activeList.length}
+                      </span>
+                    </div>
+                  </div>
+                  {activeList.length === 0 ? (
+                    <p className="py-10 text-center text-sm opacity-60">Chưa có giao dịch nào.</p>
                   ) : (
-                    <>
-                      <div className="relative h-52">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie data={pieCat} dataKey="value" nameKey="name" innerRadius={58} outerRadius={82} paddingAngle={3} stroke={ct.pieStroke} strokeWidth={2}>
-                              {pieCat.map((s) => (
-                                <Cell key={s.id} fill={s.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip content={<M3Tip />} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                          <div className="text-center">
-                            <p className="text-[11px] opacity-60">Tổng</p>
-                            <p className="text-sm font-black">{compact(tab === "day" ? totalDay : totalMonth)}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <ul className="mt-2 max-h-36 space-y-1.5 overflow-y-auto xl:max-h-48">
-                        {pieCat.map((s) => (
-                          <li key={s.id} className="flex items-center justify-between text-[13px]">
-                            <span className="flex items-center gap-2 font-semibold">
-                              <span className="size-2.5 rounded-full" style={{ background: s.color }} />
-                              {s.name} <b className="opacity-50">{s.pct}%</b>
+                    <ul className="mt-2 max-h-80 space-y-1 overflow-y-auto pr-1 sm:max-h-72 xl:max-h-[430px]">
+                      {activeList.slice(0, 30).map((e) => {
+                        const c = categoryById(e.category);
+                        const Icon = c.Icon;
+                        return (
+                          <li
+                            key={e.id}
+                            className="flex items-center gap-2.5 rounded-2xl p-2 transition hover:bg-black/5 dark:hover:bg-white/5"
+                          >
+                            <span className="grid size-9 shrink-0 place-items-center rounded-xl text-white" style={{ background: c.color }}>
+                              <Icon className="size-4" />
                             </span>
-                            <b>{formatVND(s.value)}</b>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[13px] font-bold">{e.note || c.label}</p>
+                              <p className="text-[11px] opacity-60">
+                                {formatTime(e.spent_at)}
+                                {tab === "month" ? ` • ${new Date(e.spent_at).toLocaleDateString("vi-VN")}` : ""}
+                              </p>
+                            </div>
+                            <b className="shrink-0 text-[13px]">-{compact(e.amount)}</b>
+                            <button
+                              onClick={() => deleteExpense(e.id)}
+                              aria-label="Xóa"
+                              className="grid size-8 shrink-0 place-items-center rounded-full opacity-50 transition hover:bg-red-500/10 hover:text-red-500 hover:opacity-100"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
                           </li>
-                        ))}
-                      </ul>
-                    </>
+                        );
+                      })}
+                    </ul>
                   )}
                 </div>
               </div>
 
-              {/* ===== payment donut + week bar + history ===== */}
+              {/* ===== payment donut + week bar + category donut ===== */}
               <div className="grid gap-4 xl:grid-cols-3">
                 <div className="m3-card min-w-0 p-4 sm:p-5">
                   <h2 className="font-extrabold">Theo phương thức</h2>
@@ -659,58 +671,46 @@ export default function Dashboard() {
                 </div>
 
                 <div className="m3-card min-w-0 p-4 sm:p-5">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-extrabold">{tab === "day" ? "Lịch sử hôm nay" : "Lịch sử tháng này"}</h2>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={refetch}
-                        aria-label="Tải lại"
-                        className="grid size-7 place-items-center rounded-full opacity-60 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
-                      >
-                        <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
-                      </button>
-                      <span
-                        className="rounded-full px-2.5 py-1 text-xs font-extrabold"
-                        style={{ background: "var(--m3-secondary-container)" }}
-                      >
-                        {activeList.length}
-                      </span>
-                    </div>
-                  </div>
-                  {activeList.length === 0 ? (
-                    <p className="py-10 text-center text-sm opacity-60">Chưa có giao dịch nào.</p>
+                  <h2 className="font-extrabold">{tab === "day" ? "Theo mục hôm nay" : "Theo mục tháng này"}</h2>
+                  {pieCat.length === 0 ? (
+                    <p className="py-10 text-center text-sm opacity-60">
+                      Chưa có chi tiêu.{" "}
+                      <Link href="/add" className="font-bold underline">
+                        Thêm ngay
+                      </Link>
+                    </p>
                   ) : (
-                    <ul className="mt-2 max-h-80 space-y-1 overflow-y-auto pr-1 sm:max-h-72 xl:max-h-[430px]">
-                      {activeList.slice(0, 30).map((e) => {
-                        const c = categoryById(e.category);
-                        const Icon = c.Icon;
-                        return (
-                          <li
-                            key={e.id}
-                            className="flex items-center gap-2.5 rounded-2xl p-2 transition hover:bg-black/5 dark:hover:bg-white/5"
-                          >
-                            <span className="grid size-9 shrink-0 place-items-center rounded-xl text-white" style={{ background: c.color }}>
-                              <Icon className="size-4" />
+                    <>
+                      <div className="relative h-52">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={pieCat} dataKey="value" nameKey="name" innerRadius={58} outerRadius={82} paddingAngle={3} stroke={ct.pieStroke} strokeWidth={2}>
+                              {pieCat.map((s) => (
+                                <Cell key={s.id} fill={s.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip content={<M3Tip />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                          <div className="text-center">
+                            <p className="text-[11px] opacity-60">Tổng</p>
+                            <p className="text-sm font-black">{compact(tab === "day" ? totalDay : totalMonth)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <ul className="mt-2 max-h-36 space-y-1.5 overflow-y-auto xl:max-h-48">
+                        {pieCat.map((s) => (
+                          <li key={s.id} className="flex items-center justify-between text-[13px]">
+                            <span className="flex items-center gap-2 font-semibold">
+                              <span className="size-2.5 rounded-full" style={{ background: s.color }} />
+                              {s.name} <b className="opacity-50">{s.pct}%</b>
                             </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-[13px] font-bold">{e.note || c.label}</p>
-                              <p className="text-[11px] opacity-60">
-                                {formatTime(e.spent_at)}
-                                {tab === "month" ? ` • ${new Date(e.spent_at).toLocaleDateString("vi-VN")}` : ""}
-                              </p>
-                            </div>
-                            <b className="shrink-0 text-[13px]">-{compact(e.amount)}</b>
-                            <button
-                              onClick={() => deleteExpense(e.id)}
-                              aria-label="Xóa"
-                              className="grid size-8 shrink-0 place-items-center rounded-full opacity-50 transition hover:bg-red-500/10 hover:text-red-500 hover:opacity-100"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
+                            <b>{formatVND(s.value)}</b>
                           </li>
-                        );
-                      })}
-                    </ul>
+                        ))}
+                      </ul>
+                    </>
                   )}
                 </div>
               </div>
