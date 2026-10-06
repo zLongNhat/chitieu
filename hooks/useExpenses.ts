@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getSyncId } from "@/lib/device";
 import { demoExpensesToday, loadLocal, saveLocal } from "@/lib/demo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Expense, NewExpense } from "@/lib/types";
+
+// Một cụm chi tiêu chung cho tất cả thiết bị, không phân biệt theo máy.
+const SHARED_ID = "shared";
 
 const LOCAL_SEEDED = "chitieu-seeded-v1";
 
@@ -38,11 +40,9 @@ export function useExpenses() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDemo, setIsDemo] = useState(false);
-  const [syncId, setSyncIdState] = useState("");
-  const syncRef = useRef("");
   const loadedOnce = useRef(false);
 
-  const loadData = useCallback(async (sync: string, first: boolean) => {
+  const loadData = useCallback(async (first: boolean) => {
     if (first) setLoading(true);
     else setRefreshing(true);
     try {
@@ -51,7 +51,7 @@ export function useExpenses() {
         const { data, error: err } = await sb
           .from("expenses")
           .select("*")
-          .eq("device_id", sync)
+          .eq("device_id", SHARED_ID)
           .order("spent_at", { ascending: false })
           .limit(1000);
         if (err) throw err;
@@ -98,21 +98,18 @@ export function useExpenses() {
 
   // Tải lần đầu
   useEffect(() => {
-    const sync = getSyncId();
-    syncRef.current = sync;
-    setSyncIdState(sync);
-    loadData(sync, true);
+    loadData(true);
   }, [loadData]);
 
   // Tải lại khi: quay lại tab, có mạng trở lại (mobile rớt websocket là chuyện thường)
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible" && loadedOnce.current && syncRef.current) {
-        loadData(syncRef.current, false);
+      if (document.visibilityState === "visible" && loadedOnce.current) {
+        loadData(false);
       }
     };
     const onOnline = () => {
-      if (loadedOnce.current && syncRef.current) loadData(syncRef.current, false);
+      if (loadedOnce.current) loadData(false);
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
@@ -125,22 +122,22 @@ export function useExpenses() {
   }, [loadData]);
 
   const refetch = useCallback(() => {
-    if (syncRef.current) loadData(syncRef.current, false);
+    loadData(false);
   }, [loadData]);
 
   // Realtime Supabase: cập nhật ngay khi có insert/update/delete
   useEffect(() => {
     const sb = supabase();
-    if (!sb || !isSupabaseConfigured || !syncId) return;
+    if (!sb || !isSupabaseConfigured) return;
     const channel = sb
-      .channel(`expenses-${syncId}`)
+      .channel("expenses-shared")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "expenses",
-          filter: `device_id=eq.${syncId}`,
+          filter: `device_id=eq.${SHARED_ID}`,
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
@@ -162,12 +159,11 @@ export function useExpenses() {
     return () => {
       sb.removeChannel(channel);
     };
-  }, [syncId]);
+  }, []);
 
   const addExpense = useCallback(
     async (input: NewExpense) => {
       const sb = supabase();
-      const sync = syncRef.current || getSyncId();
       if (sb && isSupabaseConfigured) {
         const { data, error: err } = await sb
           .from("expenses")
@@ -177,7 +173,7 @@ export function useExpenses() {
             note: input.note,
             payment_method: input.payment_method,
             spent_at: input.spent_at,
-            device_id: sync,
+            device_id: SHARED_ID,
           })
           .select()
           .single();
@@ -247,7 +243,6 @@ export function useExpenses() {
     error,
     isDemo,
     isSupabase: isSupabaseConfigured,
-    syncId,
     refetch,
     addExpense,
     deleteExpense,

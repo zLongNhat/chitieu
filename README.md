@@ -26,8 +26,7 @@ Mở http://localhost:3000
 
 ## 3. Logic dữ liệu
 
-- Mỗi máy có một **mã đồng bộ** (hiện ở header dashboard). Nhập cùng mã trên điện thoại
-  và máy tính để xem chung dữ liệu. Bấm "đổi" để nhập mã từ máy khác.
+- Một cụm chi tiêu chung cho mọi thiết bị (không phân biệt theo máy).
 - Dashboard tự tải lại khi mở lại tab / có mạng trở lại (đề phòng realtime rớt trên mobile).
 
 ## 4. Cài app (PWA)

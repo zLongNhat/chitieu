@@ -23,7 +23,6 @@ import {
   ArrowUpRight,
   CalendarDays,
   ChartPie,
-  Copy,
   Download,
   LayoutDashboard,
   Moon,
@@ -36,7 +35,6 @@ import {
 } from "lucide-react";
 import { CATEGORIES, categoryById } from "@/lib/categories";
 import { MONTH_SHORT, formatTime, formatVND, isSameDay, last7Days } from "@/lib/format";
-import { setSyncId } from "@/lib/device";
 import { PwaInstallButton } from "@/components/pwa";
 import { useExpenses } from "@/hooks/useExpenses";
 
@@ -100,7 +98,7 @@ function M3Tip({ active, payload, label }: any) {
 }
 
 export default function Dashboard() {
-  const { expenses, loading, refreshing, error, isDemo, isSupabase, syncId, refetch, deleteExpense, clearDemo } =
+  const { expenses, loading, refreshing, error, isDemo, isSupabase, refetch, deleteExpense, clearDemo } =
     useExpenses();
   const [tab, setTab] = useState<Tab>("day");
   const [dark, setDark] = useState(false);
@@ -120,29 +118,6 @@ export default function Dashboard() {
     } catch {
       /* bỏ qua */
     }
-  };
-
-  /* ---------- mã đồng bộ đa thiết bị ---------- */
-  const copySync = async () => {
-    try {
-      await navigator.clipboard.writeText(syncId);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = syncId;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-    }
-  };
-  const changeSync = () => {
-    const v = prompt(
-      "Nhập mã đồng bộ từ thiết bị khác để xem chung dữ liệu.\nĐể trống = tạo mã mới.",
-      "",
-    );
-    if (v === null) return; // bấm Cancel
-    setSyncId(v);
-    window.location.reload();
   };
 
   /* ---------- derived data ---------- */
@@ -352,25 +327,9 @@ export default function Dashboard() {
               </h1>
               <p className="mt-1 flex items-center gap-1.5 text-xs opacity-70">
                 <span className={`inline-block size-2 rounded-full ${isSupabase ? "bg-emerald-500" : "bg-amber-500"}`} />
-                {isSupabase ? "Supabase realtime" : "Local (chưa cấu hình Supabase)"}
+                {isSupabase ? "Supabase realtime • 1 cụm chung mọi thiết bị" : "Local (chưa cấu hình Supabase)"}
                 {isDemo ? " • đang xem dữ liệu mẫu" : ""}
               </p>
-              <div className="mt-1.5 flex items-center gap-1.5 text-xs">
-                <span className="opacity-70">Mã đồng bộ:</span>
-                <b className="rounded-md bg-black/5 px-1.5 py-0.5 font-mono dark:bg-white/10">
-                  {syncId ? (syncId.length > 12 ? `${syncId.slice(0, 8)}…` : syncId) : "…"}
-                </b>
-                <button
-                  onClick={copySync}
-                  aria-label="Copy mã đồng bộ"
-                  className="grid size-6 place-items-center rounded-full opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
-                >
-                  <Copy className="size-3.5" />
-                </button>
-                <button onClick={changeSync} className="font-bold underline opacity-70 hover:opacity-100">
-                  đổi
-                </button>
-              </div>
             </div>
             <div className="flex items-center gap-2">
               <PwaInstallButton variant="icon" />
@@ -411,7 +370,7 @@ export default function Dashboard() {
               <p>
                 <b>Không tải được dữ liệu:</b> {error}
                 <br />
-                <span className="opacity-70">Kiểm tra mạng rồi bấm thử lại. Nhập mã đồng bộ đúng máy nếu xem ở thiết bị khác.</span>
+                <span className="opacity-70">Kiểm tra mạng rồi bấm thử lại.</span>
               </p>
               <button
                 onClick={refetch}
