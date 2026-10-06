@@ -29,5 +29,11 @@ Mở http://localhost:3000
 - Mỗi máy có một **mã đồng bộ** (hiện ở header dashboard). Nhập cùng mã trên điện thoại
   và máy tính để xem chung dữ liệu. Bấm "đổi" để nhập mã từ máy khác.
 - Dashboard tự tải lại khi mở lại tab / có mạng trở lại (đề phòng realtime rớt trên mobile).
+
+## 4. Cài app (PWA)
+
+- Mở web trên Chrome/Edge (PC + Android): bấm nút **Cài app** (header hoặc sidebar) → Install.
+- Trên Safari iPhone: bấm nút **Cài app** → làm theo hướng dẫn (Chia sẻ → Thêm vào MH chính).
+- App chạy standalone, có icon, dùng offline được trang đã mở (service worker `public/sw.js`).
 - User mới chưa có record -> hiện 6 giao dịch mẫu hôm nay (chỉ ở client). Nhập khoản đầu tiên sẽ thay bằng số thật.
 - Dashboard subscribe `supabase.channel('expenses-deviceId').on('postgres_changes')` nên mở 2 tab nhập ở `/add` là `/` cập nhật ngay.

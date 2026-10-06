@@ -37,6 +37,7 @@ import {
 import { CATEGORIES, categoryById } from "@/lib/categories";
 import { MONTH_SHORT, formatTime, formatVND, isSameDay, last7Days } from "@/lib/format";
 import { setSyncId } from "@/lib/device";
+import { PwaInstallButton } from "@/components/pwa";
 import { useExpenses } from "@/hooks/useExpenses";
 
 type Tab = "day" | "month";
@@ -325,7 +326,9 @@ export default function Dashboard() {
             </ul>
           </div>
 
-          <div className="m3-tonal mt-auto p-4">
+          <div className="mt-auto flex flex-col gap-2">
+            <PwaInstallButton variant="full" />
+            <div className="m3-tonal p-4">
             <p className="text-sm font-extrabold">Xuất báo cáo</p>
             <p className="mt-0.5 text-xs opacity-60">CSV chi tiêu tháng {now.getMonth() + 1}</p>
             <button
@@ -334,6 +337,7 @@ export default function Dashboard() {
             >
               <Download className="size-4" /> Tải xuống
             </button>
+            </div>
           </div>
         </aside>
 
@@ -369,6 +373,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <PwaInstallButton variant="icon" />
               <button
                 onClick={toggleTheme}
                 aria-label="Đổi theme"
