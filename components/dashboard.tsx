@@ -284,10 +284,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)", color: "var(--foreground)" }}>
-      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1520px]">
         {/* ============ DRAWER (sidebar M3) ============ */}
         <aside
-          className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-5 overflow-y-auto p-4 lg:flex"
+          className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-5 overflow-y-auto p-4 lg:flex xl:w-64"
           style={{ background: "var(--m3-surface)", borderRight: "1px solid var(--m3-surface-container-high)" }}
         >
           <p className="px-3 pt-1 text-lg font-black tracking-tight">Chi tiêu</p>
@@ -310,7 +310,7 @@ export default function Dashboard() {
               <Tags className="size-3.5" /> DANH MỤC THÁNG NÀY
             </p>
             <ul className="mt-1.5 space-y-0.5">
-              {catMonthTotals.map((c) => (
+              {catMonthTotals.filter((c) => c.total > 0).map((c) => (
                 <li key={c.id} className="flex items-center justify-between rounded-full px-4 py-1.5 text-[13px]">
                   <span className="flex items-center gap-2 font-semibold">
                     <span className="size-2.5 rounded-full" style={{ background: c.color }} />
@@ -319,6 +319,9 @@ export default function Dashboard() {
                   <span className="font-bold opacity-60">{compact(c.total)}</span>
                 </li>
               ))}
+              {catMonthTotals.every((c) => c.total === 0) && (
+                <li className="px-4 py-1.5 text-[13px] opacity-50">Chưa có chi tiêu.</li>
+              )}
             </ul>
           </div>
 
@@ -335,7 +338,7 @@ export default function Dashboard() {
         </aside>
 
         {/* ============ MAIN ============ */}
-        <main className="flex min-w-0 flex-1 flex-col gap-4 p-4 pb-28 sm:p-6 lg:pb-10">
+        <main className="flex min-w-0 flex-1 flex-col gap-4 p-4 pb-28 sm:p-6 lg:pb-10 xl:px-8">
           {/* header */}
           <div className="m3-card flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
             <div>
@@ -507,7 +510,7 @@ export default function Dashboard() {
                       </span>
                     </div>
                   </div>
-                  <div className="mt-2 h-56 sm:h-64">
+                  <div className="mt-2 h-56 sm:h-64 xl:h-72">
                     <ResponsiveContainer width="100%" height="100%">
                       {tab === "day" ? (
                         <ComposedChart data={trend} margin={{ top: 10, right: 8, left: -6, bottom: 0 }} barCategoryGap="30%">
@@ -576,7 +579,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                       </div>
-                      <ul className="mt-2 max-h-36 space-y-1.5 overflow-y-auto">
+                      <ul className="mt-2 max-h-36 space-y-1.5 overflow-y-auto xl:max-h-48">
                         {pieCat.map((s) => (
                           <li key={s.id} className="flex items-center justify-between text-[13px]">
                             <span className="flex items-center gap-2 font-semibold">
@@ -636,7 +639,7 @@ export default function Dashboard() {
 
                 <div className="m3-card min-w-0 p-4 sm:p-5">
                   <h2 className="font-extrabold">Chi tiêu theo thứ (tuần này)</h2>
-                  <div className="mt-2 h-56 sm:h-64">
+                  <div className="mt-2 h-56 sm:h-64 xl:h-72">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={weekBar} margin={{ top: 10, right: 4, left: -14, bottom: 0 }}>
                         <defs>
@@ -677,7 +680,7 @@ export default function Dashboard() {
                   {activeList.length === 0 ? (
                     <p className="py-10 text-center text-sm opacity-60">Chưa có giao dịch nào.</p>
                   ) : (
-                    <ul className="mt-2 max-h-80 space-y-1 overflow-y-auto pr-1 sm:max-h-72">
+                    <ul className="mt-2 max-h-80 space-y-1 overflow-y-auto pr-1 sm:max-h-72 xl:max-h-[430px]">
                       {activeList.slice(0, 30).map((e) => {
                         const c = categoryById(e.category);
                         const Icon = c.Icon;
