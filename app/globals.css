@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+}
+
+:root {
+  --background: #f6f1fb;
+  --foreground: #1d1b20;
+  --m3-primary: #65558f;
+  --m3-on-primary: #ffffff;
+  --m3-primary-container: #e9ddff;
+  --m3-on-primary-container: #221655;
+  --m3-secondary-container: #e3dff9;
+  --m3-tertiary-container: #ffd9e3;
+  --m3-surface: #fdf8fd;
+  --m3-surface-container: #f3edf7;
+  --m3-surface-container-high: #ece6f0;
+  --m3-outline: #79747e;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+.dark {
+  --background: #141218;
+  --foreground: #e6e0e9;
+  --m3-primary: #d0bcff;
+  --m3-on-primary: #381e72;
+  --m3-primary-container: #4f378b;
+  --m3-on-primary-container: #e9ddff;
+  --m3-secondary-container: #4a4458;
+  --m3-tertiary-container: #633b48;
+  --m3-surface: #1d1b20;
+  --m3-surface-container: #211f26;
+  --m3-surface-container-high: #2b2930;
+  --m3-outline: #938f99;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.m3-card {
+  background: var(--m3-surface);
+  border: 1px solid color-mix(in srgb, var(--m3-outline) 18%, transparent);
+  border-radius: 28px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px -12px rgb(101 85 143 / 0.25);
+}
+
+.m3-tonal {
+  background: var(--m3-surface-container);
+  border-radius: 28px;
+}
+
+.m3-primary-btn {
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+  border-radius: 20px;
+  box-shadow: 0 8px 20px -8px rgb(101 85 143 / 0.7);
+}
+
+.m3-segmented {
+  background: var(--m3-surface-container-high);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.m3-segmented button {
+  border-radius: 999px;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.m3-segmented button[data-active="true"] {
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+}
+
+.dark .m3-segmented button[data-active="true"] {
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+
+.m3-nav-active {
+  background: var(--m3-secondary-container);
+  color: var(--m3-primary);
+  font-weight: 800;
+}
+
+.dark .m3-nav-active {
+  color: var(--m3-primary);
+}
