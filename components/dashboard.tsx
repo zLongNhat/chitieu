@@ -284,7 +284,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)", color: "var(--foreground)" }}>
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1520px]">
+      <div className="relative flex min-h-screen w-full">
         {/* ============ DRAWER (sidebar M3) ============ */}
         <aside
           className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-5 overflow-y-auto p-4 lg:flex xl:w-64"
