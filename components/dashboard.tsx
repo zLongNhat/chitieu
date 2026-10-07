@@ -192,9 +192,8 @@ export default function Dashboard() {
   const trend = tab === "day" ? trendDay : trendMonth;
   const maxChi = trend.reduce((m, r) => Math.max(m, r.chi), 0);
 
-  const pieSource = tab === "day" ? dayList : monthList;
-  // Donut phân tích dòng chi (mặc định) hoặc dòng thu khi lọc Thu
-  const pieFiltered = flowFilter === "thu" ? pieSource.filter((e) => e.kind === "thu") : pieSource.filter((e) => e.kind === "chi");
+  // Donut mục chi/thu luôn phân tích theo THÁNG này (kể cả ở tab Ngày)
+  const pieFiltered = flowFilter === "thu" ? monthList.filter((e) => e.kind === "thu") : monthList.filter((e) => e.kind === "chi");
   const pieCat = useMemo(() => {
     const map = new Map<string, number>();
     for (const e of pieFiltered) map.set(e.category, (map.get(e.category) ?? 0) + e.amount);
@@ -698,7 +697,7 @@ export default function Dashboard() {
 
                 <div className="m3-card min-w-0 p-4 sm:p-5">
                   <h2 className="font-extrabold">
-                    Theo mục {flowFilter === "thu" ? "thu" : "chi"} · {tab === "day" ? "hôm nay" : "tháng này"}
+                    Theo mục {flowFilter === "thu" ? "thu" : "chi"} · tháng này
                   </h2>
                   {pieCat.length === 0 ? (
                     <p className="py-10 text-center text-sm opacity-60">
