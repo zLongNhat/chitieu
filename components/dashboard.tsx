@@ -449,9 +449,17 @@ export default function Dashboard() {
                     {tab === "day" ? "Hôm nay bạn đã tiêu" : `Đã tiêu tháng ${now.getMonth() + 1}`}
                   </p>
                   <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight">{formatVND(chiActive)}</p>
-                  <p className="mt-1 text-xs font-semibold opacity-75">
-                    {(tab === "day" ? dayList : monthList).filter((e) => e.kind === "chi").length} khoản chi
-                  </p>
+                  <div className="mt-1 flex items-center gap-2 text-xs font-semibold opacity-75">
+                    <span>
+                      {(tab === "day" ? dayList : monthList).filter((e) => e.kind === "chi").length} khoản chi
+                    </span>
+                    {tab === "day" && (
+                      <span className="flex items-center gap-0.5 rounded-full bg-black/10 px-2 py-0.5 text-[11px] font-extrabold dark:bg-white/15">
+                        {pctVsYesterday >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+                        {Math.abs(pctVsYesterday)}%
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div
                   className="relative overflow-hidden p-4 sm:p-5"
@@ -470,24 +478,25 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <div className="m3-card min-w-0 p-4 sm:p-5">
-                  <div className="flex items-center justify-between">
-                    <p className="flex items-center gap-2 text-sm font-semibold opacity-70">
-                      <Wallet className="size-4" /> Giao dịch
-                    </p>
-                    {tab === "day" && (
-                      <span
-                        className="flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-extrabold"
-                        style={{ background: "var(--m3-tertiary-container)" }}
-                      >
-                        {pctVsYesterday >= 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
-                        {Math.abs(pctVsYesterday)}%
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-2 text-2xl sm:text-3xl font-black">{activeList.length}</p>
-                  <p className="mt-1 text-xs opacity-60">
-                    {tab === "day" ? `chi so với hôm qua ${formatVND(yesterday)}` : `trong tháng ${now.getMonth() + 1}`}
-                  </p>
+                  {tab === "day" ? (
+                    <>
+                      <p className="flex items-center gap-2 text-sm font-semibold opacity-70">
+                        <Wallet className="size-4" /> Tháng này bạn còn
+                      </p>
+                      <p className="mt-2 text-2xl sm:text-3xl font-black">{formatVND(remainMonth)}</p>
+                      <p className="mt-1 text-xs opacity-60">thu − chi tháng {now.getMonth() + 1}</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <p className="flex items-center gap-2 text-sm font-semibold opacity-70">
+                          <Wallet className="size-4" /> Giao dịch
+                        </p>
+                      </div>
+                      <p className="mt-2 text-2xl sm:text-3xl font-black">{activeList.length}</p>
+                      <p className="mt-1 text-xs opacity-60">trong tháng {now.getMonth() + 1}</p>
+                    </>
+                  )}
                 </div>
               </div>
 
