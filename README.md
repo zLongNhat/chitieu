@@ -27,6 +27,8 @@ Mở http://localhost:3000
 ## 3. Logic dữ liệu
 
 - Một cụm chi tiêu chung cho mọi thiết bị (không phân biệt theo máy).
+- Mỗi giao dịch có loại **thu / chi**: hero hiện "còn / đã tiêu / đã thu",
+  bảng lịch sử hiện cả hai (xanh +, đỏ −) kèm chip lọc.
 - Dashboard tự tải lại khi mở lại tab / có mạng trở lại (đề phòng realtime rớt trên mobile).
 
 ## 4. Cài app (PWA)

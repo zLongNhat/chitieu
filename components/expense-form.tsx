@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, PartyPopper, Plus } from "lucide-react";
-import { CATEGORIES, categoryById } from "@/lib/categories";
+import { categoriesFor, categoryById } from "@/lib/categories";
 import { formatVND } from "@/lib/format";
 import { useExpenses } from "@/hooks/useExpenses";
-import type { CategoryId, Expense, PaymentMethod } from "@/lib/types";
+import type { CategoryId, Expense, FlowKind, PaymentMethod } from "@/lib/types";
 
 const METHODS: { id: PaymentMethod; label: string }[] = [
   { id: "cash", label: "Tiền mặt" },
@@ -26,6 +26,7 @@ function toLocalInput(iso: string) {
 export default function ExpenseForm() {
   const router = useRouter();
   const { addExpense } = useExpenses();
+  const [kind, setKind] = useState<FlowKind>("chi");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<CategoryId>("an-uong");
   const [note, setNote] = useState("");
@@ -35,7 +36,13 @@ export default function ExpenseForm() {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState<Expense | null>(null);
 
+  const cats = categoriesFor(kind);
   const preview = useMemo(() => Number(amount.replace(/[^\d]/g, "")) || 0, [amount]);
+
+  function pickKind(k: FlowKind) {
+    setKind(k);
+    setCategory(categoriesFor(k)[0].id);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,6 +59,7 @@ export default function ExpenseForm() {
     try {
       const created = await addExpense({
         amount: preview,
+        kind,
         category,
         note: note.trim(),
         payment_method: method,
@@ -81,6 +89,7 @@ export default function ExpenseForm() {
 
   if (saved) {
     const c = categoryById(saved.category);
+    const isThu = saved.kind === "thu";
     return (
       <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-4 px-4 pt-5 pb-10 sm:px-6">
         <div className="m3-card flex flex-col items-center p-8 text-center sm:p-12">
@@ -91,11 +100,15 @@ export default function ExpenseForm() {
             <PartyPopper className="size-8" />
           </span>
           <h1 className="mt-4 text-2xl font-black">Đã lưu!</h1>
-          <p className="mt-1 text-4xl font-black" style={{ color: "var(--m3-primary)" }}>
+          <p
+            className="mt-1 text-4xl font-black"
+            style={{ color: isThu ? "#00A86B" : "var(--m3-primary)" }}
+          >
+            {isThu ? "+" : "-"}
             {formatVND(saved.amount)}
           </p>
           <p className="mt-2 text-sm opacity-70">
-            {c.label} •{" "}
+            {isThu ? "Thu nhập" : "Chi tiêu"} • {c.label} •{" "}
             {new Date(saved.spent_at).toLocaleString("vi-VN", {
               hour: "2-digit",
               minute: "2-digit",
@@ -130,12 +143,30 @@ export default function ExpenseForm() {
           <ArrowLeft className="size-5" />
         </Link>
         <div className="min-w-0">
-          <h1 className="text-lg font-extrabold">Nhập chi tiêu</h1>
+          <h1 className="text-lg font-extrabold">Nhập thu / chi</h1>
           <p className="truncate text-xs opacity-60">Lưu xong dashboard cập nhật realtime</p>
         </div>
       </header>
 
       <form onSubmit={submit} className="m3-card flex flex-col gap-5 p-4 sm:p-7">
+        <div>
+          <label className="text-sm font-bold">Loại giao dịch</label>
+          <div className="m3-segmented mt-2 grid grid-cols-2 gap-1" role="tablist">
+            {(["chi", "thu"] as FlowKind[]).map((k) => (
+              <button
+                type="button"
+                key={k}
+                role="tab"
+                data-active={kind === k}
+                onClick={() => pickKind(k)}
+                className="min-h-[48px] px-4 py-3 text-sm"
+              >
+                {k === "chi" ? "Chi tiêu" : "Thu nhập"}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
           <label className="text-sm font-bold">Số tiền (VND)</label>
           <input
@@ -158,13 +189,17 @@ export default function ExpenseForm() {
               </button>
             ))}
           </div>
-          {preview > 0 && <p className="mt-2 text-sm font-bold text-[#65558f]">= {formatVND(preview)}</p>}
+          {preview > 0 && (
+            <p className="mt-2 text-sm font-bold" style={{ color: kind === "thu" ? "#00A86B" : "#65558f" }}>
+              {kind === "thu" ? "+" : "-"}{formatVND(preview)}
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="text-sm font-bold">Danh mục</label>
+          <label className="text-sm font-bold">Danh mục {kind === "thu" ? "thu nhập" : "chi tiêu"}</label>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {CATEGORIES.map((c) => {
+            {cats.map((c) => {
               const Icon = c.Icon;
               const active = category === c.id;
               return (
@@ -218,7 +253,7 @@ export default function ExpenseForm() {
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="VD: Cơm trưa, đổ xăng..."
+            placeholder="VD: Lương tháng 10, cơm trưa..."
             maxLength={120}
             className={inputCls}
           />
@@ -232,7 +267,7 @@ export default function ExpenseForm() {
           className="m3-primary-btn flex min-h-[52px] items-center justify-center gap-2 !rounded-2xl p-4 text-base font-extrabold disabled:opacity-50"
         >
           <Check className="size-5" />
-          {saving ? "Đang lưu..." : "Lưu chi tiêu"}
+          {saving ? "Đang lưu..." : kind === "thu" ? "Lưu khoản thu" : "Lưu khoản chi"}
         </button>
       </form>
     </div>

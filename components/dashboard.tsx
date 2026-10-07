@@ -10,7 +10,6 @@ import {
   CartesianGrid,
   Cell,
   ComposedChart,
-  Line,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -33,7 +32,7 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
-import { CATEGORIES, categoryById } from "@/lib/categories";
+import { CATEGORIES, THU_COLOR, categoryById } from "@/lib/categories";
 import { MONTH_SHORT, formatTime, formatVND, isSameDay, last7Days } from "@/lib/format";
 import { PwaInstallButton } from "@/components/pwa";
 import { useExpenses } from "@/hooks/useExpenses";
@@ -101,6 +100,7 @@ export default function Dashboard() {
   const { expenses, loading, refreshing, error, isDemo, isSupabase, refetch, deleteExpense, clearDemo } =
     useExpenses();
   const [tab, setTab] = useState<Tab>("day");
+  const [flowFilter, setFlowFilter] = useState<"all" | "chi" | "thu">("all");
   const [dark, setDark] = useState(false);
   const now = useMemo(() => new Date(), []);
   const ct = chartTheme(dark);
@@ -139,50 +139,67 @@ export default function Dashboard() {
     [expenses, now],
   );
 
-  const totalDay = dayList.reduce((s, e) => s + e.amount, 0);
-  const totalMonth = monthList.reduce((s, e) => s + e.amount, 0);
+  const sumKind = (list: typeof dayList, kind: "chi" | "thu") =>
+    list.filter((e) => e.kind === kind).reduce((s, e) => s + e.amount, 0);
+  const chiDay = sumKind(dayList, "chi");
+  const thuDay = sumKind(dayList, "thu");
+  const chiMonth = sumKind(monthList, "chi");
+  const thuMonth = sumKind(monthList, "thu");
+  const remainDay = thuDay - chiDay;
+  const remainMonth = thuMonth - chiMonth;
+  // Số liệu theo tab đang xem: Hôm nay bạn còn / đã tiêu / đã thu
+  const remainActive = tab === "day" ? remainDay : remainMonth;
+  const chiActive = tab === "day" ? chiDay : chiMonth;
+  const thuActive = tab === "day" ? thuDay : thuMonth;
 
   const yesterday = useMemo(() => {
     const d = new Date(now);
     d.setDate(now.getDate() - 1);
     return expenses
-      .filter((e) => isSameDay(new Date(e.spent_at), d))
+      .filter((e) => e.kind === "chi" && isSameDay(new Date(e.spent_at), d))
       .reduce((s, e) => s + e.amount, 0);
   }, [expenses, now]);
-  const pctVsYesterday = yesterday > 0 ? Math.round(((totalDay - yesterday) / yesterday) * 100) : totalDay > 0 ? 100 : 0;
+  const pctVsYesterday = yesterday > 0 ? Math.round(((chiDay - yesterday) / yesterday) * 100) : chiDay > 0 ? 100 : 0;
+
+  const sumDayKind = (d: Date, kind: "chi" | "thu") =>
+    expenses
+      .filter((e) => e.kind === kind && isSameDay(new Date(e.spent_at), d))
+      .reduce((s, e) => s + e.amount, 0);
 
   const trendDay = useMemo(() => {
     const days = last7Days(now);
-    const rows = days.map((d) => ({
+    return days.map((d) => ({
       name: isSameDay(d, now) ? "H.nay" : `${d.getDate()}/${d.getMonth() + 1}`,
-      total: expenses.filter((e) => isSameDay(new Date(e.spent_at), d)).reduce((s, e) => s + e.amount, 0),
+      chi: sumDayKind(d, "chi"),
+      thu: sumDayKind(d, "thu"),
     }));
-    const avg = Math.round(rows.reduce((s, r) => s + r.total, 0) / 7);
-    return rows.map((r) => ({ ...r, avg }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses, now]);
 
   const trendMonth = useMemo(() => {
     const y = now.getFullYear();
-    const rows = MONTH_SHORT.map((name, m) => ({
-      name,
-      total: expenses
-        .filter((e) => {
-          const d = new Date(e.spent_at);
-          return d.getFullYear() === y && d.getMonth() === m;
-        })
-        .reduce((s, e) => s + e.amount, 0),
-    }));
-    const avg = Math.round(rows.reduce((s, r) => s + r.total, 0) / 12);
-    return rows.map((r) => ({ ...r, avg }));
+    return MONTH_SHORT.map((name, m) => {
+      const inMonth = expenses.filter((e) => {
+        const d = new Date(e.spent_at);
+        return d.getFullYear() === y && d.getMonth() === m;
+      });
+      return {
+        name,
+        chi: inMonth.filter((e) => e.kind === "chi").reduce((s, e) => s + e.amount, 0),
+        thu: inMonth.filter((e) => e.kind === "thu").reduce((s, e) => s + e.amount, 0),
+      };
+    });
   }, [expenses, now]);
 
   const trend = tab === "day" ? trendDay : trendMonth;
-  const maxTrend = trend.reduce((m, r) => Math.max(m, r.total), 0);
+  const maxChi = trend.reduce((m, r) => Math.max(m, r.chi), 0);
 
   const pieSource = tab === "day" ? dayList : monthList;
+  // Donut phân tích dòng chi (mặc định) hoặc dòng thu khi lọc Thu
+  const pieFiltered = flowFilter === "thu" ? pieSource.filter((e) => e.kind === "thu") : pieSource.filter((e) => e.kind === "chi");
   const pieCat = useMemo(() => {
     const map = new Map<string, number>();
-    for (const e of pieSource) map.set(e.category, (map.get(e.category) ?? 0) + e.amount);
+    for (const e of pieFiltered) map.set(e.category, (map.get(e.category) ?? 0) + e.amount);
     const total = [...map.values()].reduce((s, v) => s + v, 0) || 1;
     return [...map.entries()].map(([id, value]) => ({
       id,
@@ -191,18 +208,20 @@ export default function Dashboard() {
       pct: Math.round((value / total) * 100),
       color: categoryById(id).color,
     }));
-  }, [pieSource]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pieFiltered]);
 
   const piePay = useMemo(() => {
     const map = new Map<string, number>();
-    for (const e of pieSource) map.set(e.payment_method, (map.get(e.payment_method) ?? 0) + e.amount);
+    for (const e of pieFiltered) map.set(e.payment_method, (map.get(e.payment_method) ?? 0) + e.amount);
     const total = [...map.values()].reduce((s, v) => s + v, 0) || 1;
     return METHODS.map((m) => ({
       ...m,
       value: map.get(m.id) ?? 0,
       pct: Math.round(((map.get(m.id) ?? 0) / total) * 100),
     })).filter((m) => m.value > 0);
-  }, [pieSource]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pieFiltered]);
 
   const weekBar = useMemo(() => {
     const start = new Date(now);
@@ -215,34 +234,35 @@ export default function Dashboard() {
       d.setDate(start.getDate() + i);
       return {
         name,
-        total: expenses.filter((e) => isSameDay(new Date(e.spent_at), d)).reduce((s, e) => s + e.amount, 0),
+        chi: sumDayKind(d, "chi"),
+        thu: sumDayKind(d, "thu"),
       };
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses, now]);
-
-  const topCatMonth = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const e of monthList) map.set(e.category, (map.get(e.category) ?? 0) + e.amount);
-    let best: { id: string; value: number } | null = null;
-    for (const [id, value] of map) if (!best || value > best.value) best = { id, value };
-    return best;
-  }, [monthList]);
 
   const catMonthTotals = useMemo(() => {
     const map = new Map<string, number>();
-    for (const e of monthList) map.set(e.category, (map.get(e.category) ?? 0) + e.amount);
+    for (const e of monthList) {
+      if (e.kind !== "chi") continue;
+      map.set(e.category, (map.get(e.category) ?? 0) + e.amount);
+    }
     return CATEGORIES.map((c) => ({ ...c, total: map.get(c.id) ?? 0 }));
   }, [monthList]);
 
-  const avgPerDay = now.getDate() > 0 ? Math.round(totalMonth / now.getDate()) : 0;
   const activeList = tab === "day" ? dayList : monthList;
+  const flowList =
+    flowFilter === "all" ? activeList : activeList.filter((e) => e.kind === flowFilter);
+  const chiColor = dark ? "#FF8A80" : "#C62828";
+  const thuColor = dark ? "#69F0AE" : "#00875A";
 
   /* ---------- export CSV ---------- */
   const exportCSV = () => {
-    const rows = [["Ngay", "Danh muc", "Ghi chu", "Phuong thuc", "So tien (VND)"]];
+    const rows = [["Ngay", "Loai", "Danh muc", "Ghi chu", "Phuong thuc", "So tien (VND)"]];
     for (const e of monthList) {
       rows.push([
         new Date(e.spent_at).toLocaleString("vi-VN"),
+        e.kind === "thu" ? "Thu" : "Chi",
         categoryById(e.category).label,
         (e.note || "").replace(/"/g, '""'),
         e.payment_method,
@@ -413,9 +433,11 @@ export default function Dashboard() {
                 >
                   <div className="absolute -right-8 -bottom-10 size-40 rounded-full bg-white/15" />
                   <div className="absolute right-6 -bottom-6 size-20 rounded-full bg-white/15" />
-                  <p className="text-sm font-semibold opacity-80">Chi tiêu hôm nay</p>
-                  <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight">{formatVND(totalDay)}</p>
-                  <p className="mt-1 text-xs font-semibold opacity-75">{dayList.length} giao dịch</p>
+                  <p className="text-sm font-semibold opacity-80">
+                    {tab === "day" ? "Hôm nay bạn còn" : `Tháng ${now.getMonth() + 1} còn`}
+                  </p>
+                  <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight">{formatVND(remainActive)}</p>
+                  <p className="mt-1 text-xs font-semibold opacity-75">thu − chi</p>
                 </div>
                 <div
                   className="relative overflow-hidden p-4 sm:p-5"
@@ -423,38 +445,49 @@ export default function Dashboard() {
                 >
                   <div className="absolute -right-8 -bottom-10 size-40 rounded-full bg-white/15" />
                   <div className="absolute right-6 -bottom-6 size-20 rounded-full bg-white/15" />
-                  <p className="text-sm font-semibold opacity-80">Chi tiêu tháng {now.getMonth() + 1}</p>
-                  <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight">{formatVND(totalMonth)}</p>
-                  <p className="mt-1 text-xs font-semibold opacity-75">TB {formatVND(avgPerDay)}/ngày</p>
+                  <p className="text-sm font-semibold opacity-80">
+                    {tab === "day" ? "Hôm nay bạn đã tiêu" : `Đã tiêu tháng ${now.getMonth() + 1}`}
+                  </p>
+                  <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight">{formatVND(chiActive)}</p>
+                  <p className="mt-1 text-xs font-semibold opacity-75">
+                    {(tab === "day" ? dayList : monthList).filter((e) => e.kind === "chi").length} khoản chi
+                  </p>
+                </div>
+                <div
+                  className="relative overflow-hidden p-4 sm:p-5"
+                  style={{ background: "var(--m3-tertiary-container)", borderRadius: 28 }}
+                >
+                  <div className="absolute -right-8 -bottom-10 size-40 rounded-full bg-black/5 dark:bg-white/10" />
+                  <div className="absolute right-6 -bottom-6 size-20 rounded-full bg-black/5 dark:bg-white/10" />
+                  <p className="text-sm font-semibold opacity-80">
+                    {tab === "day" ? "Hôm nay bạn đã thu" : `Đã thu tháng ${now.getMonth() + 1}`}
+                  </p>
+                  <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight" style={{ color: thuColor }}>
+                    {formatVND(thuActive)}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold opacity-75">
+                    {(tab === "day" ? dayList : monthList).filter((e) => e.kind === "thu").length} khoản thu
+                  </p>
                 </div>
                 <div className="m3-card min-w-0 p-4 sm:p-5">
                   <div className="flex items-center justify-between">
                     <p className="flex items-center gap-2 text-sm font-semibold opacity-70">
                       <Wallet className="size-4" /> Giao dịch
                     </p>
-                    <span
-                      className="flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-extrabold"
-                      style={{ background: "var(--m3-tertiary-container)" }}
-                    >
-                      {pctVsYesterday >= 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
-                      {Math.abs(pctVsYesterday)}%
-                    </span>
+                    {tab === "day" && (
+                      <span
+                        className="flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-extrabold"
+                        style={{ background: "var(--m3-tertiary-container)" }}
+                      >
+                        {pctVsYesterday >= 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
+                        {Math.abs(pctVsYesterday)}%
+                      </span>
+                    )}
                   </div>
-                  <p className="mt-2 text-2xl sm:text-3xl font-black">{tab === "day" ? dayList.length : monthList.length}</p>
-                  <p className="mt-1 text-xs opacity-60">so với hôm qua {formatVND(yesterday)}</p>
-                </div>
-                <div className="m3-card min-w-0 p-4 sm:p-5">
-                  <p className="flex items-center gap-2 text-sm font-semibold opacity-70">
-                    <Tags className="size-4" /> Top danh mục tháng
+                  <p className="mt-2 text-2xl sm:text-3xl font-black">{activeList.length}</p>
+                  <p className="mt-1 text-xs opacity-60">
+                    {tab === "day" ? `chi so với hôm qua ${formatVND(yesterday)}` : `trong tháng ${now.getMonth() + 1}`}
                   </p>
-                  {topCatMonth ? (
-                    <>
-                      <p className="mt-2 text-2xl sm:text-3xl font-black">{categoryById(topCatMonth.id).label}</p>
-                      <p className="mt-1 text-xs opacity-60">{formatVND(topCatMonth.value)}</p>
-                    </>
-                  ) : (
-                    <p className="mt-2 text-sm opacity-60">Chưa có chi tiêu.</p>
-                  )}
                 </div>
               </div>
 
@@ -463,14 +496,14 @@ export default function Dashboard() {
                 <div className="m3-card min-w-0 p-4 sm:p-5 xl:col-span-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h2 className="font-extrabold">
-                      {tab === "day" ? "Chi tiêu 7 ngày gần nhất" : `Chi tiêu 12 tháng năm ${now.getFullYear()}`}
+                      {tab === "day" ? "Thu – chi 7 ngày gần nhất" : `Thu – chi 12 tháng năm ${now.getFullYear()}`}
                     </h2>
                     <div className="flex items-center gap-4 text-xs opacity-60">
                       <span className="flex items-center gap-1.5">
-                        <span className="h-0.5 w-5 rounded" style={{ background: ct.primary }} /> Chi tiêu
+                        <span className="size-2.5 rounded-full" style={{ background: ct.primary }} /> Đã chi
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className="h-0 w-5 border-t-2 border-dashed" style={{ borderColor: ct.avg }} /> Trung bình
+                        <span className="size-2.5 rounded-full" style={{ background: THU_COLOR }} /> Đã thu
                       </span>
                     </div>
                   </div>
@@ -488,8 +521,8 @@ export default function Dashboard() {
                           <XAxis dataKey="name" tick={{ fill: ct.tick, fontSize: 11 }} tickLine={false} axisLine={false} interval={0} />
                           <YAxis tickFormatter={compact} tick={{ fill: ct.tick, fontSize: 11 }} tickLine={false} axisLine={false} width={52} />
                           <Tooltip content={<M3Tip />} cursor={{ fill: dark ? "rgba(255,255,255,0.05)" : "rgba(29,27,32,0.05)" }} />
-                          <Bar dataKey="total" name="Chi tiêu" fill="url(#trendBar)" radius={[10, 10, 6, 6]} maxBarSize={44} />
-                          <Line type="monotone" dataKey="avg" name="Trung bình" stroke={ct.avg} strokeWidth={2} strokeDasharray="6 5" dot={false} />
+                          <Bar dataKey="chi" name="Đã chi" fill="url(#trendBar)" radius={[10, 10, 6, 6]} maxBarSize={30} />
+                          <Bar dataKey="thu" name="Đã thu" fill={THU_COLOR} radius={[10, 10, 6, 6]} maxBarSize={30} />
                         </ComposedChart>
                       ) : (
                         <AreaChart data={trend} margin={{ top: 10, right: 8, left: -6, bottom: 0 }}>
@@ -498,19 +531,23 @@ export default function Dashboard() {
                               <stop offset="0%" stopColor={ct.primary} stopOpacity={0.55} />
                               <stop offset="100%" stopColor={ct.primary} stopOpacity={0.03} />
                             </linearGradient>
+                            <linearGradient id="m3FillThu" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor={THU_COLOR} stopOpacity={0.5} />
+                              <stop offset="100%" stopColor={THU_COLOR} stopOpacity={0.03} />
+                            </linearGradient>
                           </defs>
                           <CartesianGrid stroke={ct.grid} vertical={false} />
                           <XAxis dataKey="name" tick={{ fill: ct.tick, fontSize: 11 }} tickLine={false} axisLine={false} interval={0} />
                           <YAxis tickFormatter={compact} tick={{ fill: ct.tick, fontSize: 11 }} tickLine={false} axisLine={false} width={52} />
                           <Tooltip content={<M3Tip />} />
-                          <Area type="monotone" dataKey="total" name="Chi tiêu" stroke={ct.primary} strokeWidth={2.5} fill="url(#m3Fill)" />
-                          <Line type="monotone" dataKey="avg" name="Trung bình" stroke={ct.avg} strokeWidth={2} strokeDasharray="6 5" dot={false} />
+                          <Area type="monotone" dataKey="chi" name="Đã chi" stroke={ct.primary} strokeWidth={2.5} fill="url(#m3Fill)" />
+                          <Area type="monotone" dataKey="thu" name="Đã thu" stroke={THU_COLOR} strokeWidth={2.5} fill="url(#m3FillThu)" />
                         </AreaChart>
                       )}
                     </ResponsiveContainer>
                   </div>
                   <p className="mt-1 text-xs opacity-60">
-                    Cao nhất: <b style={{ color: "var(--m3-primary)" }}>{formatVND(maxTrend)}</b>
+                    Chi nhiều nhất: <b style={{ color: "var(--m3-primary)" }}>{formatVND(maxChi)}</b>
                   </p>
                 </div>
 
@@ -529,17 +566,42 @@ export default function Dashboard() {
                         className="rounded-full px-2.5 py-1 text-xs font-extrabold"
                         style={{ background: "var(--m3-secondary-container)" }}
                       >
-                        {activeList.length}
+                        {flowList.length}
                       </span>
                     </div>
                   </div>
-                  {activeList.length === 0 ? (
+                  {/* Lọc thu / chi: bảng hiện cả hai cột */}
+                  <div className="mt-2 flex gap-1.5" role="tablist" aria-label="Lọc thu chi">
+                    {(
+                      [
+                        { id: "all", label: "Cả hai" },
+                        { id: "chi", label: "Chi" },
+                        { id: "thu", label: "Thu" },
+                      ] as const
+                    ).map((f) => (
+                      <button
+                        key={f.id}
+                        role="tab"
+                        onClick={() => setFlowFilter(f.id)}
+                        className="min-h-[36px] rounded-full px-4 text-xs font-extrabold transition active:scale-95"
+                        style={
+                          flowFilter === f.id
+                            ? { background: "var(--m3-primary)", color: "var(--m3-on-primary)" }
+                            : { background: "var(--m3-surface-container-high)" }
+                        }
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                  {flowList.length === 0 ? (
                     <p className="py-10 text-center text-sm opacity-60">Chưa có giao dịch nào.</p>
                   ) : (
                     <ul className="mt-2 max-h-80 space-y-1 overflow-y-auto pr-1 sm:max-h-72 xl:max-h-[430px]">
-                      {activeList.slice(0, 30).map((e) => {
+                      {flowList.slice(0, 30).map((e) => {
                         const c = categoryById(e.category);
                         const Icon = c.Icon;
+                        const isThu = e.kind === "thu";
                         return (
                           <li
                             key={e.id}
@@ -551,11 +613,13 @@ export default function Dashboard() {
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-[13px] font-bold">{e.note || c.label}</p>
                               <p className="text-[11px] opacity-60">
-                                {formatTime(e.spent_at)}
+                                {isThu ? "Thu" : "Chi"} • {c.label} • {formatTime(e.spent_at)}
                                 {tab === "month" ? ` • ${new Date(e.spent_at).toLocaleDateString("vi-VN")}` : ""}
                               </p>
                             </div>
-                            <b className="shrink-0 text-[13px]">-{compact(e.amount)}</b>
+                            <b className="shrink-0 text-[13px]" style={{ color: isThu ? thuColor : chiColor }}>
+                              {isThu ? "+" : "-"}{compact(e.amount)}
+                            </b>
                             <button
                               onClick={() => deleteExpense(e.id)}
                               aria-label="Xóa"
@@ -575,6 +639,7 @@ export default function Dashboard() {
               <div className="grid gap-4 xl:grid-cols-3">
                 <div className="m3-card min-w-0 p-4 sm:p-5">
                   <h2 className="font-extrabold">Theo phương thức</h2>
+                  <p className="text-xs opacity-60">Dòng {flowFilter === "thu" ? "thu nhập" : "chi tiêu"}</p>
                   {piePay.length === 0 ? (
                     <p className="py-10 text-center text-sm opacity-60">Chưa có dữ liệu.</p>
                   ) : (
@@ -614,7 +679,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="m3-card min-w-0 p-4 sm:p-5">
-                  <h2 className="font-extrabold">Chi tiêu theo thứ (tuần này)</h2>
+                  <h2 className="font-extrabold">Thu – chi theo thứ (tuần này)</h2>
                   <div className="mt-2 h-56 sm:h-64 xl:h-72">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={weekBar} margin={{ top: 10, right: 4, left: -14, bottom: 0 }}>
@@ -628,14 +693,17 @@ export default function Dashboard() {
                         <XAxis dataKey="name" tick={{ fill: ct.tick, fontSize: 11 }} tickLine={false} axisLine={false} />
                         <YAxis tickFormatter={compact} tick={{ fill: ct.tick, fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
                         <Tooltip content={<M3Tip />} cursor={{ fill: dark ? "rgba(255,255,255,0.05)" : "rgba(29,27,32,0.05)" }} />
-                        <Bar dataKey="total" name="Chi tiêu" fill="url(#m3Bar)" radius={[10, 10, 6, 6]} maxBarSize={34} />
+                        <Bar dataKey="chi" name="Đã chi" fill="url(#m3Bar)" radius={[10, 10, 6, 6]} maxBarSize={22} />
+                        <Bar dataKey="thu" name="Đã thu" fill={THU_COLOR} radius={[10, 10, 6, 6]} maxBarSize={22} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
                 <div className="m3-card min-w-0 p-4 sm:p-5">
-                  <h2 className="font-extrabold">{tab === "day" ? "Theo mục hôm nay" : "Theo mục tháng này"}</h2>
+                  <h2 className="font-extrabold">
+                    Theo mục {flowFilter === "thu" ? "thu" : "chi"} · {tab === "day" ? "hôm nay" : "tháng này"}
+                  </h2>
                   {pieCat.length === 0 ? (
                     <p className="py-10 text-center text-sm opacity-60">
                       Chưa có chi tiêu.{" "}
@@ -659,7 +727,7 @@ export default function Dashboard() {
                         <div className="pointer-events-none absolute inset-0 grid place-items-center">
                           <div className="text-center">
                             <p className="text-[11px] opacity-60">Tổng</p>
-                            <p className="text-sm font-black">{compact(tab === "day" ? totalDay : totalMonth)}</p>
+                            <p className="text-sm font-black">{compact(pieCat.reduce((s, x) => s + x.value, 0))}</p>
                           </div>
                         </div>
                       </div>

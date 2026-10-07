@@ -4,11 +4,12 @@
 create table if not exists public.expenses (
   id uuid primary key default gen_random_uuid(),
   amount numeric not null check (amount > 0),
+  kind text not null default 'chi',
   category text not null default 'khac',
   note text not null default '',
   payment_method text not null default 'cash',
   spent_at timestamptz not null default now(),
-  device_id text not null default 'public',
+  device_id text not null default 'shared',
   created_at timestamptz not null default now()
 );
 

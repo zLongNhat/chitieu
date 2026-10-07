@@ -13,6 +13,7 @@ const LOCAL_SEEDED = "chitieu-seeded-v1";
 interface Row {
   id: unknown;
   amount: unknown;
+  kind: unknown;
   category: unknown;
   note: unknown;
   payment_method: unknown;
@@ -25,6 +26,7 @@ function toExpense(r: Row): Expense {
   return {
     id: String(r.id),
     amount: Number(r.amount),
+    kind: r.kind === "thu" ? "thu" : "chi",
     category: r.category as Expense["category"],
     note: String(r.note ?? ""),
     payment_method: (r.payment_method as Expense["payment_method"]) ?? "cash",
@@ -169,6 +171,7 @@ export function useExpenses() {
           .from("expenses")
           .insert({
             amount: input.amount,
+            kind: input.kind,
             category: input.category,
             note: input.note,
             payment_method: input.payment_method,

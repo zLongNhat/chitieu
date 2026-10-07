@@ -10,8 +10,18 @@ export function demoExpensesToday(): Expense[] {
   };
   return [
     {
+      id: "demo-thu-1",
+      amount: 800000,
+      kind: "thu",
+      category: "luong",
+      note: "Lương tuần",
+      payment_method: "bank",
+      spent_at: at(8, 0),
+    },
+    {
       id: "demo-1",
       amount: 45000,
+      kind: "chi",
       category: "an-uong",
       note: "Cơm trưa văn phòng",
       payment_method: "cash",
@@ -20,6 +30,7 @@ export function demoExpensesToday(): Expense[] {
     {
       id: "demo-2",
       amount: 25000,
+      kind: "chi",
       category: "di-chuyen",
       note: "Gửi xe + xăng",
       payment_method: "cash",
@@ -28,6 +39,7 @@ export function demoExpensesToday(): Expense[] {
     {
       id: "demo-3",
       amount: 89000,
+      kind: "chi",
       category: "an-uong",
       note: "Trà sữa cả team",
       payment_method: "ewallet",
@@ -36,6 +48,7 @@ export function demoExpensesToday(): Expense[] {
     {
       id: "demo-4",
       amount: 150000,
+      kind: "chi",
       category: "mua-sam",
       note: "Áo thun",
       payment_method: "bank",
@@ -44,6 +57,7 @@ export function demoExpensesToday(): Expense[] {
     {
       id: "demo-5",
       amount: 120000,
+      kind: "chi",
       category: "hoa-don",
       note: "Tiền điện",
       payment_method: "bank",
@@ -52,6 +66,7 @@ export function demoExpensesToday(): Expense[] {
     {
       id: "demo-6",
       amount: 60000,
+      kind: "chi",
       category: "giai-tri",
       note: "Vé xem phim",
       payment_method: "ewallet",
