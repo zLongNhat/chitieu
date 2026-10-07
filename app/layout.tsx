@@ -39,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className={`${jakarta.variable} min-h-full antialiased`}>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{const t=localStorage.getItem('chitieu-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`,
+            __html: `try{if(localStorage.getItem('chitieu-theme')!=='light')document.documentElement.classList.add('dark')}catch(e){}`,
           }}
         />
         <SwRegister />
