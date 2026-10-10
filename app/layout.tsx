@@ -35,11 +35,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="vi" suppressHydrationWarning>
+    <html lang="vi" suppressHydrationWarning className="dark">
       <body className={`${jakarta.variable} min-h-full antialiased`}>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem('chitieu-theme')!=='light')document.documentElement.classList.add('dark')}catch(e){}`,
+            __html: `try{if(localStorage.getItem('chitieu-theme')==='light')document.documentElement.classList.remove('dark')}catch(e){document.documentElement.classList.add('dark')}`,
           }}
         />
         <SwRegister />
